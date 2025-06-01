@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tambah Produk</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+  <div class="w-full max-w-md bg-white rounded-xl shadow-md p-6 space-y-4">
+    <h2 class="text-2xl font-semibold text-center text-gray-700">Tambah Produk</h2>
+    <form id="productForm" class="space-y-4">
+      <input type="text" name="name" id="name" placeholder="Nama Produk" required
+        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" />
+      <input type="number" name="price" id="price" placeholder="Harga" required
+        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" />
+      <input type="number" name="stock" id="stock" placeholder="Stok" required
+        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" />
+      <input type="file" name="image" id="image" accept="image/*" required
+        class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-500 file:text-white hover:file:bg-blue-600" />
+      <img id="preview" src="#" alt="Preview" class="w-full mt-2 rounded-lg hidden" />
+      <button type="submit"
+        class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition">
+        Simpan Produk
+      </button>
+      <div class="text-sm text-red-600 text-center" id="error"></div>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById('productForm');
+    const preview = document.getElementById('preview');
+    const errorDiv = document.getElementById('error');
+    const imageInput = document.getElementById('image');
+
+    imageInput.addEventListener('change', () => {
+      const file = imageInput.files[0];
+      if (file && file.type.startsWith('image/')) {
+        preview.src = URL.createObjectURL(file);
+        preview.classList.remove('hidden');
+      } else {
+        preview.classList.add('hidden');
+      }
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorDiv.textContent = '';
+
+      const name = form.name.value.trim();
+      const price = form.price.value.trim();
+      const stock = form.stock.value.trim();
+      const image = imageInput.files[0];
+
+      if (!name || !price || !stock || !image) {
+        errorDiv.textContent = 'Semua field wajib diisi.';
+        return;
+      }
+
+      if (!['image/jpeg', 'image/png'].includes(image.type)) {
+        errorDiv.textContent = 'Hanya file JPG/PNG yang diperbolehkan.';
+        return;
+      }
+
+      if (image.size > 2 * 1024 * 1024) {
+        errorDiv.textContent = 'Ukuran gambar maksimal 2MB.';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('price', price);
+      formData.append('stock', stock);
+      formData.append('image', image);
+
+      try {
+        const res = await fetch('http://localhost:3000/api/products', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert('Produk berhasil ditambahkan!');
+          form.reset();
+          preview.classList.add('hidden');
+        } else {
+          errorDiv.textContent = data.message || 'Terjadi kesalahan.';
+        }
+      } catch (err) {
+        errorDiv.textContent = 'Gagal terhubung ke server.';
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>

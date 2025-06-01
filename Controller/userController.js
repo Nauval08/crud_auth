@@ -45,9 +45,49 @@ exports.getOne = (req, res) => {
 };
 
 exports.update = (req, res) => {
-  User.update(req.params.id, req.body, (err) => {
-    if (err) return res.status(500).json(err);
-    res.json({ message: 'User updated' });
+  const id = req.params.id;
+  const { name, email } = req.body;
+  const photo = req.file ? req.file.filename : null;
+
+  User.findById(id, (err, results) => {
+    if (err) return res.status(500).json({ error: err });
+    if (results.length === 0) return res.status(404).json({ message: 'User not found' });
+
+    const oldPhoto = results[0].photo;
+    const updateData = { name, email };
+    if (photo) {
+      updateData.photo = photo;
+
+      // Hapus foto lama jika ada
+      const fs = require('fs');
+      const path = require('path');
+      if (oldPhoto) {
+        const filePath = path.join(__dirname, '..', 'public', 'uploads', oldPhoto);
+        fs.unlink(filePath, (err) => {
+          if (err) console.warn('Gagal hapus foto lama:', err.message);
+        });
+      }
+    }
+
+    User.update(id, updateData, (err, result) => {
+      if (err) return res.status(500).json({ error: err });
+
+      const photoUrl = photo
+        ? `http://localhost:3000/uploads/${photo}`
+        : oldPhoto
+        ? `http://localhost:3000/uploads/${oldPhoto}`
+        : null;
+
+      res.json({
+        message: 'User updated successfully',
+        user: {
+          id,
+          name,
+          email,
+          photo: photoUrl
+        }
+      });
+    });
   });
 };
 
